@@ -1,8 +1,12 @@
 apply plugin: 'com.android.application'
 
-def releaseTime() {
-    return new Date().format("yyyyMMdd", TimeZone.getTimeZone("UTC"))
+def getDate() {
+    def date = new Date()
+    def formattedDate = date.format('yyyyMMddHHmm')
+    return formattedDate
 }
+
+def verCode = 1
 
 android {
     compileSdkVersion 25
@@ -11,10 +15,11 @@ android {
         applicationId "com.yuntian.multichanneltest"
         minSdkVersion 15
         targetSdkVersion 25
-        versionCode 1
-        versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        versionCode verCode
+        versionName APP_VERSION
+        resValue("string", 'app_version', APP_VERSION)
 
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         aaptOptions.cruncherEnabled = false
         aaptOptions.useNewCruncher = false
     }
@@ -36,6 +41,12 @@ android {
 
     buildTypes {
         release {
+            buildConfigField 'String', 'API_SERVER_URL', RELEASE_API_SERVER_URL
+            buildConfigField 'String', 'API_SERVER_URL_MALL', RELEASE_API_SERVER_URL_MALL
+            buildConfigField 'String', 'IM_SERVER_HOST', RELEASE_IM_SERVER_HOST
+            buildConfigField 'int', 'IM_SERVER_PORT', RELEASE_IM_SERVER_PORT
+            buildConfigField "boolean", "LEO_DEBUG", RELEASE_LEO_DEBUG
+
             // 不显示Log
             buildConfigField "boolean", "LOG_DEBUG", "false"
             //启用混淆代码的功能
@@ -49,6 +60,12 @@ android {
         }
 
         debug {
+            buildConfigField 'String', 'API_SERVER_URL', INSIDE_TEST_API_SERVER_URL
+            buildConfigField 'String', 'API_SERVER_URL_MALL', INSIDE_TEST_API_SERVER_URL_MALL
+            buildConfigField 'String', 'IM_SERVER_HOST', INSIDE_TEST_IM_SERVER_HOST
+            buildConfigField 'int', 'IM_SERVER_PORT', INSIDE_TEST_IM_SERVER_PORT
+            buildConfigField "boolean", "LEO_DEBUG", INSIDE_TEST_LEO_DEBUG
+
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.debug
@@ -63,20 +80,23 @@ android {
         incremental true
         javaMaxHeapSize "4g"
         //关闭预编译
-        preDexLibraries = false
+        preDexLibraries = true
     }
-
 
 
     // 如果嫌上面写法麻烦,也可以这样简写,加上一个批量处理即可.
     productFlavors {
-        _91 {}
-        wandoujia {}
-        xiaomi {}
-        _360shoufa{}
-        anzhi{}
-        baidushoufa{}
-        huaweishoufa{}
+        commonsoon{}
+        zhushou91{}
+        market360{}
+        xiaomi{}
+        wandoujia{}
+        yingyonghui{}
+        jifengmarket{}
+        mumayi{}
+        yingyongbao{}
+        huaweimrket{}
+        anzhimarket{}
     }
     //批量处理
     productFlavors.all {
@@ -85,17 +105,34 @@ android {
             flavor.manifestPlaceholders = [MTA_CHANNEL_VALUE: channel]
     }
 
+    //修改生成的apk名字
     applicationVariants.all { variant ->
         variant.outputs.each { output ->
-            def outputFile = output.outputFile
-            if (variant.buildType.name.equals('release')) {
-                //可自定义自己想要生成的格式
-                def channel = variant.productFlavors[0].name.startsWith("_") ? variant.productFlavors[0].name.substring(1) : variant.productFlavors[0].name
-                def fileName = "mct_v${defaultConfig.versionName}_${releaseTime()}_${channel}.apk"
-                output.outputFile = new File(outputFile.parent, fileName)
+            def newName
+            def timeNow
+            def oldFile = output.outputFile
+            def outDirectory = oldFile.parent
+
+            if ("true".equals(IS_JENKINS)) {
+                timeNow = JENKINS_TIME
+                outDirectory = 'F:/IT/java/apache-tomcat-8.0.41/webapps/jenkins/app'
+                newName = 'mct-android-v' +
+                        APP_VERSION + '-' + variant.productFlavors[0].name + timeNow + '-' + variant.buildType.name + '.apk'
+            } else {
+                timeNow = getDate()
+                if (variant.buildType.name.equals('debug')) {
+                    newName = "mct-android-v${APP_VERSION}-debug.apk"
+                } else {
+                    newName = 'mct-android-v' +
+                            APP_VERSION + '-' + variant.productFlavors[0].name + timeNow + '-' + variant.buildType.name + '.apk'
+                }
             }
+
+            output.outputFile = new File(outDirectory, newName)
+
         }
     }
+
     apply from: 'productFlavors.gradle'
 }
 
