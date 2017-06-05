@@ -114,7 +114,7 @@ android {
             def outDirectory = oldFile.parent
 
             if ("true".equals(IS_JENKINS)) {
-                timeNow = JENKINS_TIME
+                timeNow = BUILD_TIME
                 outDirectory = 'F:/IT/java/apache-tomcat-8.0.41/webapps/jenkins/app'
                 newName = 'mct-android-v' +
                         APP_VERSION + '-' + variant.productFlavors[0].name + timeNow + '-' + variant.buildType.name + '.apk'
